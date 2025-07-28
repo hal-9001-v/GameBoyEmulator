@@ -1,0 +1,17 @@
+{
+    "files.associations": {
+        "rom_reader.h": "c",
+        "memory_reader.h": "c",
+        "stdio.h": "c",
+        "dirent.h": "c",
+        "cartridge.h": "c",
+        "stdint.h": "c",
+        "cpu.h": "c",
+        "op_instructions.h": "c",
+        "compare": "c",
+        "stdbool.h": "c",
+        "decoder.h": "c",
+        "basic_instructions.h": "c",
+        "type_traits": "c"
+    }
+}
