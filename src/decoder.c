@@ -1,68 +1,10 @@
 #include "decoder.h"
 #include "cpu.h"
 #include "memory_reader.h"
-#include <stdio.h>
 
+#include <stdio.h>
 uint16_t program_counter;
 uint16_t stack_pointer = 0xFFFE;
-
-/// @brief Copy value from 16 register address into 8 register
-/// @param dst_index destination address
-/// @param dual_address_src Address in memory
-void set_register_rm(uint8_t dst_index, uint8_t dual_address_src)
-{
-    uint16_t address = get_dual_register(dual_address_src);
-    set_register(dst_index, read_memory(address));
-}
-
-/// @brief Copies register value into address
-/// @param dual_dst_index Dual register with address
-/// @param source_index 8 register with value to copy
-void set_memory_mr(uint8_t dual_dst_index, uint8_t source_index)
-{
-    uint16_t address = get_dual_register(dual_dst_index);
-    write_memory(address, get_register(source_index));
-}
-
-/// @brief Get the value inside a register. If the index is that of a dual register, it returns the value for such address in memory
-/// @param index
-/// @return
-uint8_t get_register_8(uint8_t index)
-{
-    if (index <= A_REGISTER)
-    {
-        return get_register(index);
-    }
-    else
-    {
-        uint16_t address = get_dual_register(index);
-        return read_memory(address);
-    }
-}
-
-void and_register_8(uint8_t index)
-{
-    uint8_t value = get_register_8(index);
-    and_register(value);
-}
-
-void or_register_8(uint8_t index)
-{
-    uint8_t value = get_register_8(index);
-    or_register(value);
-}
-
-void xor_register_8(uint8_t index)
-{
-    uint8_t value = get_register_8(index);
-    or_register(value);
-}
-
-void cp_register_8(uint8_t index)
-{
-    uint8_t value = get_register_8(index);
-    cp_register(value);
-}
 
 uint8_t get_range_value(uint8_t full, uint8_t start, uint8_t end)
 {
@@ -72,7 +14,6 @@ uint8_t get_range_value(uint8_t full, uint8_t start, uint8_t end)
     return full & mask;
 }
 
-void sub_register_carry(uint8_t index){}
 
 void halt()
 {
@@ -93,7 +34,7 @@ void ld_block(uint8_t code)
         return;
 
     uint8_t src = get_range_value(code, 0, 2);
-    uint8_t value = get_register_8((code, 3, 5));
+    uint8_t value = get_range_value(code, 3, 5);
 
     set_register(src, value);
 }
@@ -178,7 +119,9 @@ void decode_16_op()
     }
     else if (code < 0x38)
     {
+        
         // SWAP
+
     }
     else if (code < 0x40)
     {
@@ -228,22 +171,22 @@ void a_operation_block(uint8_t code)
     else if (code < 0xA8)
     {
         // AND
-        and_register_8(src);
+        and_register(src);
     }
     else if (code < 0xB0)
     {
         // XOR
-        xor_register_8(src);
+        xor_register(src);
     }
     else if (code < 0xB8)
     {
         // OR
-        or_register_8(src);
+        or_register(src);
     }
     else if (code < 0xC0)
     {
         // CP
-        cp_register_8(src);
+        cp_register(src);
     }
 
     perror("Code ouf of block!");
@@ -459,7 +402,7 @@ uint16_t decode(uint8_t code)
             break;
         case 0x2A:
             // LD A, (DE): Load the 8-bit contents of memory specified by register pair DE into register A
-            set_register_rm(A_REGISTER, DE_REGISTER);
+            set_register_rr(A_REGISTER, DE_REGISTER);
             break;
         case 0x2B:
             // DEC DE: Decrement the contents of register pair DE by 1.
@@ -543,7 +486,7 @@ uint16_t decode(uint8_t code)
 
         case 0x3A:
             // LD A, (HL-): Load the contents of memory specified by register pair HL into register A, and simultaneously decrement the contents of HL.
-            set_register_rm(A_REGISTER, HL_REGISTER);
+            set_register_rr(A_REGISTER, HL_REGISTER);
             sub_dual_register(HL_REGISTER, 1);
             break;
         case 0x3B:
