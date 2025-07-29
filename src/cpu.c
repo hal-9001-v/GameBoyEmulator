@@ -201,7 +201,7 @@ void rotate_register_right_carry(uint8_t index)
     else
     {
         set_register(index, rotate_right(get_register(index)));
-        set_flag(FLAG_CARRY, get_register(index) & 0x01);
+        set_flag(FLAG_CARRY, get_register(index) & 0x80);
     }
 }
 

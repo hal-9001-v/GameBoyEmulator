@@ -1,6 +1,7 @@
 #include "tests.h"
 #include "basic_instructions.h"
 #include "cpu.h"
+#include "memory_reader.h"
 
 void setUp(void)
 {
@@ -10,6 +11,25 @@ void setUp(void)
 void tearDown(void)
 {
     // clean stuff up here
+}
+
+void basic_operation_tests(void)
+{
+    combine(0xF0, 0x0F);
+    TEST_ASSERT_EQUAL_UINT8(combine(0x0A, 0xF0), 0xF00A);
+
+    from_combination(0xA0B1);
+    TEST_ASSERT_EQUAL_UINT8(combination_buffer[0], 0xB1);
+    TEST_ASSERT_EQUAL_UINT8(combination_buffer[1], 0xA0);
+}
+
+void memory_tests(void)
+{
+    write_memory(WORK_RAM_1_START, 0xEA);
+    TEST_ASSERT_EQUAL_UINT8(read_memory(WORK_RAM_1_START), 0xEA);
+
+    write_memory(WORK_RAM_2_START + 2, 0x01);
+    TEST_ASSERT_EQUAL_UINT8(read_memory(WORK_RAM_2_START + 2), 0x01);
 }
 
 void bit_operations_tests(void)
@@ -84,14 +104,11 @@ void check_dual_register(uint8_t index)
     rotate_register_left_carry(index);
     TEST_ASSERT_EQUAL_UINT16(0x8020, get_dual_register(index));
     TEST_ASSERT_EQUAL_UINT8(0, get_flag(FLAG_CARRY));
-    
+
     set_dual_register(index, 0x9080);
     rotate_register_left_carry(index);
     TEST_ASSERT_EQUAL_UINT16(0x2101, get_dual_register(index));
     TEST_ASSERT_EQUAL_UINT8(1, get_flag(FLAG_CARRY));
-
-    
-
 }
 
 void cpu_register_operations_test(void)
@@ -100,15 +117,66 @@ void cpu_register_operations_test(void)
     decrease_register(E_REGISTER);
     TEST_ASSERT_EQUAL_UINT16(0xA0, get_register(E_REGISTER));
 
+    set_register(D_REGISTER, 0x02);
+    increase_register(D_REGISTER);
+    TEST_ASSERT_EQUAL_UINT8(0x03, get_register(D_REGISTER));
+
     check_dual_register(HL_REGISTER);
     check_dual_register(BC_REGISTER);
     check_dual_register(DE_REGISTER);
+
+    set_register(A_REGISTER, 0x81);
+    rotate_register_left(A_REGISTER);
+    TEST_ASSERT_EQUAL_UINT8(0x03, get_register(A_REGISTER));
+
+    set_register(A_REGISTER, 0x81);
+    rotate_register_left_carry(A_REGISTER);
+    TEST_ASSERT_EQUAL_UINT8(0x03, get_register(A_REGISTER));
+    TEST_ASSERT_EQUAL_UINT8(get_flag(FLAG_CARRY), 0x01);
+
+    set_register(A_REGISTER, 0x81);
+    rotate_register_right(A_REGISTER);
+    TEST_ASSERT_EQUAL_UINT8(0xC0, get_register(A_REGISTER));
+
+    set_register(A_REGISTER, 0x81);
+    rotate_register_right_carry(A_REGISTER);
+    TEST_ASSERT_EQUAL_UINT8(0xC0, get_register(A_REGISTER));
+    TEST_ASSERT_EQUAL_UINT8(get_flag(FLAG_CARRY), 0x01);
+}
+
+void mask_operations_test(void)
+{
+    set_register(A_REGISTER, 0xFF);
+    and_register(0xF0);
+    TEST_ASSERT_EQUAL_UINT8(get_register(A_REGISTER), 0xF0);
+
+    set_register(A_REGISTER, 0xFF);
+    set_dual_register(HL_REGISTER, WORK_RAM_1_START);
+    set_register(HL_REGISTER, 0xF0);
+    and_register_rr(HL_REGISTER);
+    TEST_ASSERT_EQUAL_UINT8(get_register(A_REGISTER), 0xF0);
+
+    set_register(A_REGISTER, 0x0F);
+    xor_register(0xFF);
+    TEST_ASSERT_EQUAL_UINT8(get_register(A_REGISTER), 0xF0);
+
+    set_register(A_REGISTER, 0xFF);
+    xor_register(0xFF);
+    TEST_ASSERT_NOT_EQUAL_UINT8(get_register(A_REGISTER), 0xF0);
+
+    set_register(A_REGISTER, 0x0F);
+    or_register(0xF0);
+    TEST_ASSERT_EQUAL_UINT8(get_register(A_REGISTER), 0xFF);
 }
 
 int start_tests()
 {
     UNITY_BEGIN();
+    RUN_TEST(basic_operation_tests);
+    RUN_TEST(memory_tests);
     RUN_TEST(bit_operations_tests);
     RUN_TEST(cpu_register_operations_test);
+    RUN_TEST(mask_operations_test);
+
     return UNITY_END();
 }
