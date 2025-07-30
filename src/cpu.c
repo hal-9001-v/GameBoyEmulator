@@ -63,7 +63,7 @@ void add_register(uint8_t value)
 
 void add_register_carry(uint8_t value)
 {
-    add_register(value);
+    add_register(value + get_flag(FLAG_CARRY));
 }
 
 void add_register_rr_carry(uint8_t index)
@@ -129,6 +129,11 @@ void and_register(uint8_t value)
 void cp_register(uint8_t value)
 {
     set_flag(FLAG_ZERO, value == get_register(A_REGISTER));
+}
+
+void cp_register_rr(uint8_t index)
+{
+    cp_register(get_register(index));
 }
 
 void set_register_bit(uint8_t register_index, uint8_t bit_index, uint8_t value)
@@ -274,8 +279,9 @@ void swap(uint8_t register_index)
 {
     uint8_t value = get_register(register_index);
 
-    uint8_t left = value & 0xF0;
-
+    uint8_t left = value & 0x0F;
+    left = left << 4;
+    
     value = value >> 4;
     value |= left;
 

@@ -62,6 +62,8 @@ void xor_register(uint8_t value);
 
 void cp_register(uint8_t value);
 
+void cp_register_rr(uint8_t index);
+
 void set_register_bit(uint8_t register_index, uint8_t bit_index, uint8_t value);
 
 void rotate_register_left(uint8_t index);
