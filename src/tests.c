@@ -141,7 +141,39 @@ void cpu_register_operations_test(void)
     set_register(A_REGISTER, 0x81);
     rotate_register_right_carry(A_REGISTER);
     TEST_ASSERT_EQUAL_UINT8(0xC0, get_register(A_REGISTER));
-    TEST_ASSERT_EQUAL_UINT8(get_flag(FLAG_CARRY), 0x01);
+    TEST_ASSERT_EQUAL_UINT8(0x01, get_flag(FLAG_CARRY));
+
+    set_register(A_REGISTER, 0xDA);
+    cp_register(0xDA);
+    TEST_ASSERT_EQUAL_UINT8(0x01, get_flag(FLAG_ZERO));
+    cp_register(0xDD);
+    TEST_ASSERT_EQUAL_UINT8(0x00, get_flag(FLAG_ZERO));
+
+    set_register(A_REGISTER, 0xFE);
+    set_register(B_REGISTER, 0xFE);
+    cp_register_rr(B_REGISTER);
+    TEST_ASSERT_EQUAL_UINT8(0x01, get_flag(FLAG_ZERO));
+
+    set_register(A_REGISTER, 0x56);
+    write_memory(WORK_RAM_1_START, 0x56);
+    set_dual_register(HL_REGISTER, WORK_RAM_1_START);
+    cp_register_rr(HL_REGISTER);
+    TEST_ASSERT_EQUAL_UINT8(0x01, get_flag(FLAG_ZERO));
+
+    set_register(A_REGISTER, 0x56);
+    write_memory(WORK_RAM_1_START, 0x11);
+    set_dual_register(HL_REGISTER, WORK_RAM_1_START);
+    cp_register_rr(HL_REGISTER);
+    TEST_ASSERT_EQUAL_UINT8(0x00, get_flag(FLAG_ZERO));
+
+    set_register(A_REGISTER, 0xA0);
+    swap(A_REGISTER);
+    TEST_ASSERT_EQUAL_UINT8(0x0A, get_register(A_REGISTER));
+
+    set_dual_register(HL_REGISTER, WORK_RAM_1_START);
+    set_register(HL_REGISTER, 0xCA);
+    swap(HL_REGISTER);
+    TEST_ASSERT_EQUAL_UINT8(0xAC, get_register(HL_REGISTER));
 }
 
 void mask_operations_test(void)
