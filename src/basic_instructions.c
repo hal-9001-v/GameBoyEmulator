@@ -86,3 +86,21 @@ uint16_t rotate_right_16(uint16_t target)
 
     return target;
 }
+
+uint8_t get_range_value(uint8_t full, uint8_t start, uint8_t end)
+{
+    uint8_t length = end - start + 1;
+    full = full >> start;
+    uint8_t mask = (1 << length) - 1;
+    return full & mask;
+}
+
+uint8_t get_bit_value(uint8_t value, uint8_t bit)
+{
+    uint8_t mask = 0x01 << bit;
+    value = value & mask;
+
+    value = value >> bit;
+
+    return value;
+}

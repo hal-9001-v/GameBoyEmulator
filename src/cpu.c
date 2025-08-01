@@ -5,7 +5,8 @@
 #include "basic_instructions.h"
 #include "memory_reader.h"
 
-uint8_t registers[10];
+/// @brief 9 registers, although only 8 are actually needed. HL_REGISTER index will be not used.
+uint8_t registers[9];
 
 bool is_dual_register(uint8_t index)
 {
@@ -21,7 +22,12 @@ bool is_dual_register(uint8_t index)
     return false;
 }
 
-void set_IME(uint16_t value)
+void set_IME(uint8_t value)
+{
+
+}
+
+void set_IME_next(uint8_t value)
 {
 }
 
@@ -136,9 +142,20 @@ void cp_register_rr(uint8_t index)
     cp_register(get_register(index));
 }
 
+uint8_t get_register_bit(uint8_t register_index, uint8_t bit)
+{
+    get_bit_value(get_register(register_index), bit);
+}
+
 void set_register_bit(uint8_t register_index, uint8_t bit_index, uint8_t value)
 {
     set_register(register_index, set_bit(get_register(register_index), bit_index, value));
+}
+
+void register_bit_test(uint8_t index, uint8_t bit)
+{
+    uint8_t value = get_register(index);
+    set_flag(FLAG_ZERO, value != 0x01);
 }
 
 void rotate_register_left(uint8_t index)
@@ -275,13 +292,13 @@ void set_flag(uint8_t index, uint8_t value)
     set_register(FLAG_REGISTER, set_bit(get_register(FLAG_REGISTER), index, value));
 }
 
-void swap(uint8_t register_index)
+void swap_register(uint8_t register_index)
 {
     uint8_t value = get_register(register_index);
 
     uint8_t left = value & 0x0F;
     left = left << 4;
-    
+
     value = value >> 4;
     value |= left;
 

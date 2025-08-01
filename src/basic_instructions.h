@@ -28,3 +28,7 @@ uint16_t rotate_left_16(uint16_t target);
 uint8_t rotate_right(uint8_t target);
 
 uint16_t rotate_right_16(uint16_t target);
+
+uint8_t get_range_value(uint8_t full, uint8_t start, uint8_t end);
+
+uint8_t get_bit_value(uint8_t value, uint8_t bit);

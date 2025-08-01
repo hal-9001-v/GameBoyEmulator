@@ -5,27 +5,29 @@
 #define C_REGISTER 1
 #define D_REGISTER 2
 #define E_REGISTER 3
-#define H_REGISTER 5
-#define L_REGISTER 6
-#define HL_REGISTER 7
-#define A_REGISTER 8
-#define FLAG_REGISTER 10
-#define BC_REGISTER 11
-#define DE_REGISTER 12
-#define AF_REGISTER 13
+#define H_REGISTER 4
+#define L_REGISTER 5
+#define HL_REGISTER 6
+#define A_REGISTER 7
+#define FLAG_REGISTER 8
+#define BC_REGISTER 9
+#define DE_REGISTER 10
+#define AF_REGISTER 11
 
 #define FLAG_ZERO 7
 #define FLAG_SUB 6
 #define FLAG_HALF_CARRY 5
 #define FLAG_CARRY 4
 
-void set_IME(uint16_t value);
+void set_IME(uint8_t value);
+
+void set_IME_next(uint8_t value);
 
 uint8_t get_register(uint8_t index);
 
 /// @brief Set register. If register is dual, write to the memory specified in such register. If wanted to write in a dual register, use set_dual_register
-/// @param index 
-/// @param value 
+/// @param index
+/// @param value
 void set_register(uint8_t index, uint8_t value);
 
 void set_dual_register(uint8_t index, uint16_t value);
@@ -64,7 +66,11 @@ void cp_register(uint8_t value);
 
 void cp_register_rr(uint8_t index);
 
+uint8_t get_register_bit(uint8_t register_index, uint8_t bit);
+
 void set_register_bit(uint8_t register_index, uint8_t bit_index, uint8_t value);
+
+void register_bit_test(uint8_t index, uint8_t bit);
 
 void rotate_register_left(uint8_t index);
 
@@ -82,6 +88,8 @@ void sub_dual_register(uint8_t index, uint16_t value);
 
 void set_flag(uint8_t index, uint8_t value);
 
-void swap(uint8_t register_index);
+void swap_register(uint8_t register_index);
 
 uint8_t get_flag(uint8_t index);
+
+uint8_t get_dual_register_index(uint8_t local_index);

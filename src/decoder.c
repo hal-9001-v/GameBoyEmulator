@@ -1,19 +1,29 @@
+#include <stdio.h>
+
 #include "decoder.h"
 #include "cpu.h"
 #include "memory_reader.h"
+#include "basic_instructions.h"
 
-#include <stdio.h>
 uint16_t program_counter;
 uint16_t stack_pointer = 0xFFFE;
 
-uint8_t get_range_value(uint8_t full, uint8_t start, uint8_t end)
+/// @brief Get from 0 to 3, BC, DE, HL and AF dual registers' true index. Useful for decoding
+/// @param local_index
+/// @return
+uint8_t get_dual_register_index(uint8_t local_index)
 {
-    uint8_t length = end - start + 1;
-    full = full >> start;
-    uint8_t mask = (1 << length) - 1;
-    return full & mask;
-}
+    if (local_index == 0)
+        return BC_REGISTER;
+    if (local_index == 1)
+        return DE_REGISTER;
+    if (local_index == 2)
+        return HL_REGISTER;
+    if (local_index == 3)
+        return AF_REGISTER;
 
+    return -1;
+}
 
 void halt()
 {
@@ -21,6 +31,20 @@ void halt()
 
 void nop()
 {
+}
+
+void pop(uint8_t index)
+{
+}
+
+void call(bool condition)
+{
+    if (condition)
+    {
+        write_memory_16(stack_pointer, program_counter);
+        program_counter -= 2;
+        program_counter = read_memory_16(program_counter);
+    }
 }
 
 void return_from_stack()
@@ -119,26 +143,38 @@ void decode_16_op()
     }
     else if (code < 0x38)
     {
-        
         // SWAP
-
+        uint8_t index = get_range_value(code, 0, 2);
+        swap_register(index);
     }
     else if (code < 0x40)
     {
         // SRL
+        uint8_t index = get_range_value(code, 0, 2);
+        rotate_register_left_carry(index);
     }
     else if (code < 0x80)
     {
         // BIT
+        uint8_t index = get_range_value(code, 0, 2);
+        uint8_t bit = get_range_value(code, 3, 5);
+        register_bit_test(index, bit);
     }
     else if (code < 0xC0)
     {
         // RES
+        uint8_t index = get_range_value(code, 0, 2);
+        uint8_t bit = get_range_value(code, 3, 5);
+
+        set_register_bit(index, bit, 0);
     }
     else
     {
         // SET
         uint8_t index = get_range_value(code, 0, 2);
+        uint8_t bit = get_range_value(code, 3, 5);
+
+        set_register_bit(index, bit, 1);
     }
 }
 
@@ -194,14 +230,18 @@ void a_operation_block(uint8_t code)
 
 void push_block(uint8_t code)
 {
-    uint8_t value = get_range_value(code, 4, 5);
-    write_memory_16(stack_pointer, get_dual_register(BC_REGISTER + value));
+    uint8_t local_index = get_range_value(code, 4, 5);
+    write_memory_16(stack_pointer, get_dual_register_index(local_index));
+}
+
+void rst_block(uint8_t bit_index)
+{
 }
 
 uint16_t decode(uint8_t code)
 {
+    uint16_t value = get_register(A_REGISTER);
     uint16_t address;
-    uint8_t value;
 
     if (code < 0x40)
     {
@@ -288,6 +328,7 @@ uint16_t decode(uint8_t code)
             // LD (DE), A: Store the contents of register A in the memory location specified by register pair DE.
             program_counter++;
             write_memory(read_memory_16(program_counter), get_register(A_REGISTER));
+            program_counter++;
             break;
         case 0x13:
             // INC DE: Increment the contents of register pair DE by 1.
@@ -315,6 +356,7 @@ uint16_t decode(uint8_t code)
             // JR s8: Jump s8 steps from the current address in the program counter (PC).
             program_counter++;
             program_counter += read_memory_16(program_counter);
+            program_counter++;
         case 0x19:
             // ADD HL, DE: Add the contents of register pair DE to the contents of register pair HL, and store the results in register pair HL.
             add_dual_register(HL_REGISTER, get_dual_register(DE_REGISTER));
@@ -359,6 +401,7 @@ uint16_t decode(uint8_t code)
             // LD HL, d16: Load the 2 bytes of immediate data into register pair HL.
             program_counter++;
             set_dual_register(HL_REGISTER, read_memory_16(program_counter));
+            program_counter++;
             break;
         case 0x22:
             // LD (HL+), A: Store the contents of register A into the memory location specified by register pair HL, and simultaneously increment the contents of HL.
@@ -384,7 +427,7 @@ uint16_t decode(uint8_t code)
             break;
         case 0x27:
             // DAA: Adjust the accumulator (register A) too a binary-coded decimal (BCD) number after BCD addition and subtraction operations.
-
+            perror("Not implemented!");
             // TODO
             break;
         case 0x28:
@@ -423,8 +466,7 @@ uint16_t decode(uint8_t code)
             break;
         case 0x2F:
             // RRA: Rotate the contents of register A to the right, through the carry (CY) flag.
-
-            // rotate_register_right(A_REGISTER);
+            rotate_register_right_carry(A_REGISTER);
 
             break;
         case 0x30:
@@ -440,6 +482,7 @@ uint16_t decode(uint8_t code)
             // LD SP, d16: Load the 2 bytes of immediate data into register pair SP.
             program_counter++;
             stack_pointer = read_memory_16(program_counter);
+            program_counter++;
             break;
         case 0x32:
             // LD (HL-), A: Store the contents of register A into the memory location specified by register pair HL,
@@ -453,20 +496,16 @@ uint16_t decode(uint8_t code)
             break;
         case 0x34:
             // INC (HL): Increment the contents of memory specified by register pair HL by 1.
-            address = get_dual_register(HL_REGISTER);
-            value = read_memory(address) + 1;
-            write_memory(address, value);
+            increase_register(HL_REGISTER);
             break;
         case 0x35:
             // DEC (HL): Decrement the contents of memory specified by register pair HL by 1.
-            address = get_dual_register(HL_REGISTER);
-            value = read_memory(address) - 1;
-            write_memory(address, value);
+            decrease_register(HL_REGISTER);
             break;
         case 0x36:
             // LD (HL), d8: Store the contents of 8-bit immediate operand d8 in the memory location specified by register pair HL.
             program_counter++;
-            write_memory(get_dual_register(HL_REGISTER), read_memory(program_counter));
+            set_register(HL_REGISTER, read_memory(program_counter));
             break;
         case 0x37:
             // SCF: Set Carry flag
@@ -540,15 +579,29 @@ uint16_t decode(uint8_t code)
         case 0xE1:
         case 0xF1:
             // POP
+            uint8_t local_index = get_range_value(code, 4, 5);
+            pop(get_dual_register_index(local_index));
             break;
         case 0xC2:
             // JP NZ, a16:
+            program_counter++;
+            if (get_flag(FLAG_ZERO) == 0)
+            {
+                stack_pointer = read_memory_16(program_counter);
+            }
+            program_counter++;
+
             break;
         case 0xC3:
             // JP a16
+            program_counter++;
+            stack_pointer = read_memory_16(program_counter);
+            program_counter++;
             break;
         case 0xC4:
             // CALL NZ, a16
+            call(get_flag(FLAG_ZERO) == 0);
+
             break;
         case 0xC5:
         case 0xD5:
@@ -559,12 +612,20 @@ uint16_t decode(uint8_t code)
             break;
         case 0xC6:
             // ADD A, d8
+            program_counter++;
+            add_register(read_memory(program_counter));
             break;
         case 0xC7:
         case 0xD7:
         case 0xE7:
         case 0xF7:
+        case 0xCF:
+        case 0xDF:
+        case 0xEF:
+        case 0xFF:
             // RST
+            uint8_t index = get_range_value(code, 3, 5);
+            rst_block(index);
             break;
         case 0xC8:
             // RET Z
@@ -587,20 +648,16 @@ uint16_t decode(uint8_t code)
             break;
         case 0xCC:
             // CALL Z, a16
+            call(get_flag(FLAG_ZERO) == 1);
             break;
         case 0xCD:
             // CALL a16
+            call(true);
             break;
         case 0xCE:
             // ADC A, d8
             program_counter++;
             add_register_carry(read_memory(program_counter));
-            break;
-        case 0xCF:
-        case 0xDF:
-        case 0xEF:
-        case 0xFF:
-            // RST
             break;
         case 0xD0:
             // RET NC
@@ -621,6 +678,7 @@ uint16_t decode(uint8_t code)
             break;
         case 0xD4:
             // CALL NC, a16
+            call(get_flag(FLAG_CARRY) == 0);
             break;
         case 0xD6:
             // SUB d8
@@ -651,12 +709,7 @@ uint16_t decode(uint8_t code)
             break;
         case 0xDC:
             // CALL C, a16
-            if (get_flag(FLAG_ZERO))
-            {
-                write_memory_16(stack_pointer, program_counter + 2);
-                program_counter++;
-                program_counter = read_memory_16(program_counter);
-            }
+            call(get_flag(FLAG_ZERO) == 1);
             break;
         case 0xDD:
             // No instruction
@@ -668,10 +721,17 @@ uint16_t decode(uint8_t code)
             break;
         case 0xE0:
             // LD (a8), A
-
+            value = get_register(A_REGISTER);
+            program_counter++;
+            address = 0xFF00 + read_memory(program_counter);
+            write_memory(address, value);
             break;
         case 0xE2:
             // LD (C), A
+            value = get_register(A_REGISTER);
+            address = 0xFF00 + get_register(B_REGISTER);
+
+            write_memory(address, value);
             break;
         case 0xE3:
         case 0xE4:
@@ -693,6 +753,10 @@ uint16_t decode(uint8_t code)
             break;
         case 0xEA:
             // LD (a16), A
+            program_counter++;
+            uint16_t address = read_memory_16(program_counter);
+            uint8_t value = get_register(A_REGISTER);
+            write_memory(address, value);
             break;
         case 0xEE:
             // XOR d8
@@ -701,13 +765,20 @@ uint16_t decode(uint8_t code)
             break;
         case 0xF0:
             // LD A, (a8)
-
+            program_counter++;
+            address = 0xFF00 + read_memory(program_counter);
+            set_register(A_REGISTER, read_memory(address));
             break;
         case 0xF2:
             // LD A, (C)
+            value = get_register(A_REGISTER);
+            address = 0xFF00 + get_register(C_REGISTER);
+
+            write_memory(address, value);
             break;
         case 0xF3:
             // DI
+            set_IME(0);
             break;
         case 0xF6:
             // OR d8
@@ -716,6 +787,9 @@ uint16_t decode(uint8_t code)
             break;
         case 0xF8:
             // LD HL, SP+s8
+            program_counter++;
+            value = (int8_t)read_memory(program_counter);
+            set_dual_register(HL_REGISTER, stack_pointer + value);
             break;
         case 0xF9:
             // LD SP, HL
@@ -724,11 +798,12 @@ uint16_t decode(uint8_t code)
         case 0xFA:
             // LD A, (a16)
             program_counter++;
-            uint16_t address = read_memory_16(program_counter);
+            address = read_memory_16(program_counter);
             set_register(A_REGISTER, read_memory(address));
             break;
         case 0xFB:
             // EI
+            set_IME_next(1);
             break;
         default:
             perror("Instruction is not supported!");
