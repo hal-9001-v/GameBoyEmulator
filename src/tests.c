@@ -167,12 +167,12 @@ void cpu_register_operations_test(void)
     TEST_ASSERT_EQUAL_UINT8(0x00, get_flag(FLAG_ZERO));
 
     set_register(A_REGISTER, 0xA0);
-    swap(A_REGISTER);
+    swap_register(A_REGISTER);
     TEST_ASSERT_EQUAL_UINT8(0x0A, get_register(A_REGISTER));
 
     set_dual_register(HL_REGISTER, WORK_RAM_1_START);
     set_register(HL_REGISTER, 0xCA);
-    swap(HL_REGISTER);
+    swap_register(HL_REGISTER);
     TEST_ASSERT_EQUAL_UINT8(0xAC, get_register(HL_REGISTER));
 }
 
